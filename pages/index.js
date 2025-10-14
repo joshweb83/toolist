@@ -12,8 +12,13 @@ export default function HomePage() {
           A collection of handy web utilities.
         </Typography>
         <Link href="/tools/script-timer" passHref>
+          <Button variant="contained" size="large" sx={{ mr: 2 }}>
+            Script-Timer
+          </Button>
+        </Link>
+        <Link href="/tools/vat-calculator" passHref>
           <Button variant="contained" size="large">
-            Go to Script-Timer
+            VAT Calculator
           </Button>
         </Link>
       </Box>

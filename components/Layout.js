@@ -6,6 +6,7 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import HomeIcon from '@mui/icons-material/Home';
 import TimerIcon from '@mui/icons-material/Timer';
+import CalculateIcon from '@mui/icons-material/Calculate'; // Import CalculateIcon
 import Link from 'next/link';
 import { ColorModeContext } from '../pages/_app.js';
 
@@ -24,6 +25,7 @@ export default function Layout({ children }) {
   const menuItems = [
     { text: 'Home', href: '/', icon: <HomeIcon /> },
     { text: 'Script-Timer', href: '/tools/script-timer', icon: <TimerIcon /> },
+    { text: 'VAT Calculator', href: '/tools/vat-calculator', icon: <CalculateIcon /> }, // Add new menu item
   ];
 
   const drawerList = (
