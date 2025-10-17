@@ -7,6 +7,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import HomeIcon from '@mui/icons-material/Home';
 import TimerIcon from '@mui/icons-material/Timer';
 import CalculateIcon from '@mui/icons-material/Calculate'; // Import CalculateIcon
+import NewspaperIcon from '@mui/icons-material/Newspaper'; // Import NewspaperIcon
 import Link from 'next/link';
 import { ColorModeContext } from '../pages/_app.js';
 
@@ -26,6 +27,7 @@ export default function Layout({ children }) {
     { text: 'Home', href: '/', icon: <HomeIcon /> },
     { text: 'Script-Timer', href: '/tools/script-timer', icon: <TimerIcon /> },
     { text: 'VAT Calculator', href: '/tools/vat-calculator', icon: <CalculateIcon /> }, // Add new menu item
+    { text: 'Newscraper', href: '/tools/newscraper', icon: <NewspaperIcon /> },
   ];
 
   const drawerList = (
@@ -93,7 +95,7 @@ export default function Layout({ children }) {
       {/* Footer with version */}
       <Box component="footer" sx={{ py: 2, textAlign: 'center', bgcolor: 'background.paper' }}>
         <Typography variant="body2" color="text.secondary">
-          Toolist v1.1.0
+          Toolist v1.2.0
         </Typography>
       </Box>
     </Box>
