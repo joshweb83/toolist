@@ -8,6 +8,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import TimerIcon from '@mui/icons-material/Timer';
 import CalculateIcon from '@mui/icons-material/Calculate'; // Import CalculateIcon
 import NewspaperIcon from '@mui/icons-material/Newspaper'; // Import NewspaperIcon
+import ImageSearchIcon from '@mui/icons-material/ImageSearch';
 import Link from 'next/link';
 import { ColorModeContext } from '../pages/_app.js';
 
@@ -28,6 +29,7 @@ export default function Layout({ children }) {
     { text: 'Script-Timer', href: '/tools/script-timer', icon: <TimerIcon /> },
     { text: 'VAT Calculator', href: '/tools/vat-calculator', icon: <CalculateIcon /> }, // Add new menu item
     { text: 'Newscraper', href: '/tools/newscraper', icon: <NewspaperIcon /> },
+    { text: 'Print Resolution Checker', href: '/tools/resolution-checker', icon: <ImageSearchIcon /> },
   ];
 
   const drawerList = (

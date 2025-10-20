@@ -5,18 +5,23 @@ import { useRouter } from 'next/router';
 const tools = [
   {
     name: 'Script-Timer',
-    description: '대본 리딩 시간을 측정하는 타이머입니다.',
+    description: '대본 리딩 시간 측정 타이머',
     href: '/tools/script-timer',
   },
   {
     name: 'VAT Calculator',
-    description: '부가가치세(VAT)를 계산하는 도구입니다.',
+    description: '부가가치세(VAT) 계산기',
     href: '/tools/vat-calculator',
   },
   {
     name: 'Newscraper',
-    description: '뉴스 기사를 수집하는 도구입니다. (준비 중)',
+    description: '뉴스 기사 수집 도구 (준비 중)',
     href: '/tools/newscraper',
+  },
+  {
+    name: 'Print Resolution Checker',
+    description: '인쇄용 이미지 해상도 점검툴',
+    href: '/tools/resolution-checker',
   },
 ];
 
