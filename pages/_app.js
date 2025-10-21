@@ -1,5 +1,4 @@
 import * as React from 'react';
-import Head from 'next/head';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Layout from '../components/Layout';
@@ -44,12 +43,6 @@ export default function MyApp({ Component, pageProps }) {
 
   return (
     <ColorModeContext.Provider value={colorMode}>
-      <Head>
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-        />
-      </Head>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Layout>
