@@ -28,7 +28,6 @@ export default function Layout({ children }) {
     { text: 'Home', href: '/', icon: <HomeIcon /> },
     { text: 'Script-Timer', href: '/tools/script-timer', icon: <TimerIcon /> },
     { text: 'VAT Calculator', href: '/tools/vat-calculator', icon: <CalculateIcon /> }, // Add new menu item
-    { text: 'Newscraper', href: '/tools/newscraper', icon: <NewspaperIcon /> },
     { text: 'Print Resolution Checker', href: '/tools/resolution-checker', icon: <ImageSearchIcon /> },
   ];
 

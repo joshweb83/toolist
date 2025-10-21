@@ -14,11 +14,6 @@ const tools = [
     href: '/tools/vat-calculator',
   },
   {
-    name: 'Newscraper',
-    description: '뉴스 기사 수집 도구 (준비 중)',
-    href: '/tools/newscraper',
-  },
-  {
     name: 'Print Resolution Checker',
     description: '인쇄용 이미지 해상도 점검툴',
     href: '/tools/resolution-checker',
