@@ -5,6 +5,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import HomeIcon from '@mui/icons-material/Home';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
 import TimerIcon from '@mui/icons-material/Timer';
 import CalculateIcon from '@mui/icons-material/Calculate'; // Import CalculateIcon
 import NewspaperIcon from '@mui/icons-material/Newspaper'; // Import NewspaperIcon
@@ -26,6 +27,7 @@ export default function Layout({ children }) {
 
   const menuItems = [
     { text: 'Home', href: '/', icon: <HomeIcon /> },
+    { text: 'Daily QT', href: '/tools/daily-qt', icon: <MenuBookIcon /> },
     { text: 'Script-Timer', href: '/tools/script-timer', icon: <TimerIcon /> },
     { text: 'VAT Calculator', href: '/tools/vat-calculator', icon: <CalculateIcon /> }, // Add new menu item
     { text: 'Print Resolution Checker', href: '/tools/resolution-checker', icon: <ImageSearchIcon /> },

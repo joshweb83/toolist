@@ -4,6 +4,11 @@ import { useRouter } from 'next/router';
 
 const tools = [
   {
+    name: 'Daily QT',
+    description: '📖 오늘의 말씀 큐티',
+    href: '/tools/daily-qt',
+  },
+  {
     name: 'Script-Timer',
     description: '대본 리딩 시간 측정 타이머',
     href: '/tools/script-timer',
