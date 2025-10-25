@@ -268,7 +268,7 @@ const ResolutionChecker = () => {
                             )}
                         </>
                     ) : (
-                        <Typography color="text.secondary">이미지를 올리거나 인쇄 사이즈를 입력하고 '결과 확인'을 눌러주세요.</Typography>
+                        <Typography color="text.secondary">이미지를 올리거나 인쇄 사이즈를 입력하고 &apos;결과 확인&apos;을 눌러주세요.</Typography>
                     )}
                 </Box>
             </Paper>
