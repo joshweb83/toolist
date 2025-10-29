@@ -6,9 +6,10 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import HomeIcon from '@mui/icons-material/Home';
 import TimerIcon from '@mui/icons-material/Timer';
-import CalculateIcon from '@mui/icons-material/Calculate'; // Import CalculateIcon
-import NewspaperIcon from '@mui/icons-material/Newspaper'; // Import NewspaperIcon
+import CalculateIcon from '@mui/icons-material/Calculate';
+import NewspaperIcon from '@mui/icons-material/Newspaper';
 import ImageSearchIcon from '@mui/icons-material/ImageSearch';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
 import Link from 'next/link';
 import { ColorModeContext } from '../pages/_app.js';
 
@@ -27,8 +28,9 @@ export default function Layout({ children }) {
   const menuItems = [
     { text: 'Home', href: '/', icon: <HomeIcon /> },
     { text: 'Script-Timer', href: '/tools/script-timer', icon: <TimerIcon /> },
-    { text: 'VAT Calculator', href: '/tools/vat-calculator', icon: <CalculateIcon /> }, // Add new menu item
+    { text: 'VAT Calculator', href: '/tools/vat-calculator', icon: <CalculateIcon /> },
     { text: 'Print Resolution Checker', href: '/tools/resolution-checker', icon: <ImageSearchIcon /> },
+    { text: 'QR Code Generator', href: '/tools/qr-code-generator', icon: <QrCode2Icon /> },
   ];
 
   const drawerList = (
