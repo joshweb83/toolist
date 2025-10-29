@@ -31,19 +31,6 @@ export default function HomePage() {
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
-        <Typography
-          variant="h2"
-          component="h1"
-          gutterBottom
-          align="center"
-          sx={{
-            fontFamily: "'Pacifico', cursive",
-            fontSize: { xs: '2.5rem', sm: '3.5rem' },
-            mb: 2,
-          }}
-        >
-          Toolist
-        </Typography>
         <Typography variant="h5" color="text.secondary" paragraph align="center">
           A collection of handy web utilities
         </Typography>
