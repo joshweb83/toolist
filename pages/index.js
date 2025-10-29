@@ -23,6 +23,11 @@ const tools = [
     description: 'QR 코드 생성기',
     href: '/tools/qr-code-generator',
   },
+  {
+    name: 'Article Writer',
+    description: 'AI 기사 작성기',
+    href: '/tools/article-writer',
+  },
 ];
 
 export default function HomePage() {
