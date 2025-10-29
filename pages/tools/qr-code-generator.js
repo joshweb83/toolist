@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -23,7 +23,7 @@ export default function QRCodeGenerator() {
   const [error, setError] = useState('');
   const canvasRef = useRef(null);
 
-  const generateQRCode = async () => {
+  const generateQRCode = useCallback(async () => {
     if (!inputText.trim()) {
       setError('텍스트 또는 URL을 입력해주세요.');
       setQrCodeUrl('');
@@ -53,7 +53,7 @@ export default function QRCodeGenerator() {
       setError('QR 코드 생성에 실패했습니다.');
       console.error(err);
     }
-  };
+  }, [inputText, qrSize]);
 
   const downloadQRCode = async () => {
     if (!inputText.trim()) return;
@@ -88,7 +88,7 @@ export default function QRCodeGenerator() {
       setQrCodeUrl('');
       setError('');
     }
-  }, [inputText, qrSize]);
+  }, [inputText, qrSize, generateQRCode]);
 
   return (
     <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 2 }}>
