@@ -34,8 +34,11 @@ export default function QRCodeGenerator() {
       setError('');
       const canvas = canvasRef.current;
 
+      // 프리뷰는 256px 이하로 제한
+      const displaySize = qrSize > 256 ? 256 : qrSize;
+
       await QRCode.toCanvas(canvas, inputText, {
-        width: qrSize,
+        width: displaySize,
         margin: 2,
         color: {
           dark: '#000000',
@@ -52,13 +55,29 @@ export default function QRCodeGenerator() {
     }
   };
 
-  const downloadQRCode = () => {
-    if (!qrCodeUrl) return;
+  const downloadQRCode = async () => {
+    if (!inputText.trim()) return;
 
-    const link = document.createElement('a');
-    link.download = 'qrcode.png';
-    link.href = qrCodeUrl;
-    link.click();
+    try {
+      // 다운로드는 원본 크기(qrSize)로 생성
+      const tempCanvas = document.createElement('canvas');
+      await QRCode.toCanvas(tempCanvas, inputText, {
+        width: qrSize,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+      });
+
+      const url = tempCanvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `qrcode-${qrSize}x${qrSize}.png`;
+      link.href = url;
+      link.click();
+    } catch (err) {
+      console.error('다운로드 실패:', err);
+    }
   };
 
   // 입력값이 변경되면 자동으로 QR 코드 생성
@@ -198,11 +217,16 @@ export default function QRCodeGenerator() {
                     />
                   </Box>
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                    원본 크기: {qrSize}x{qrSize} 픽셀
+                    {qrSize > 256
+                      ? `프리뷰: 256x256 픽셀 (다운로드: ${qrSize}x${qrSize} 픽셀)`
+                      : `크기: ${qrSize}x${qrSize} 픽셀`
+                    }
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                    (프리뷰는 화면에 맞게 축소됩니다)
-                  </Typography>
+                  {qrSize > 256 && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      (큰 QR 코드는 프리뷰만 축소됩니다)
+                    </Typography>
+                  )}
                 </Box>
               )}
 
