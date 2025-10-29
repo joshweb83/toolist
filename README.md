@@ -71,7 +71,42 @@ GEMINI_API_KEY=your_actual_gemini_api_key_here
 
 ## 🌐 배포
 
-### Vercel 자동 배포 설정
+### 🔄 자동 배포 워크플로우
+
+이 프로젝트는 **GitHub Actions**를 통해 자동으로 배포됩니다.
+
+#### 개발 프로세스
+
+```bash
+# 1. claude/* 브랜치에서 작업
+git checkout -b claude/your-feature-name
+
+# 2. 코드 수정 및 커밋
+git add .
+git commit -m "feat: Add new feature"
+
+# 3. GitHub에 Push
+git push -u origin claude/your-feature-name
+
+# 4. 자동 실행:
+#    ✅ GitHub Actions가 자동으로 main 브랜치에 머지
+#    ✅ Vercel이 자동으로 Production 배포
+```
+
+#### 자동 배포 플로우
+
+1. **`claude/**` 브랜치에 Push**
+   → GitHub Actions가 자동으로 main 브랜치에 머지
+
+2. **main 브랜치 업데이트**
+   → Vercel이 자동으로 Production 배포
+
+3. **배포 완료**
+   → 실시간으로 사이트 반영
+
+**결과:** 어떤 브랜치에서 작업하더라도 `claude/*` 패턴이면 자동으로 Production에 배포됩니다! 🚀
+
+### Vercel 초기 설정
 
 #### 1단계: Vercel과 GitHub 연동
 
@@ -99,20 +134,20 @@ GEMINI_API_KEY=your_gemini_api_key_here
 연동 완료 후 자동으로 배포됩니다:
 
 - **Main 브랜치 Push** → ✅ Production 배포 (자동)
+- **Claude 브랜치 Push** → ✅ Main 머지 → Production 배포 (자동)
 - **다른 브랜치 Push** → 🔍 Preview 배포 (자동)
-- **Pull Request 생성** → 🔍 Preview 배포 + PR 댓글에 URL 추가
 
 #### 배포 확인
 
 - Production URL: `https://toolist-[project-id].vercel.app`
-- Preview URL: PR 댓글 또는 Vercel Dashboard에서 확인
+- GitHub Actions: Repository → Actions 탭에서 워크플로우 확인
 
 #### 배포 실패 시 확인사항
 
-1. Vercel Dashboard → Deployments에서 로그 확인
-2. 환경 변수 설정 확인
-3. `vercel.json` 설정 확인
-4. 빌드 명령어: `npm run build`
+1. GitHub Actions 로그 확인 (Actions 탭)
+2. Vercel Dashboard → Deployments에서 로그 확인
+3. 환경 변수 설정 확인
+4. `vercel.json` 설정 확인
 
 ## 📝 라이선스
 
