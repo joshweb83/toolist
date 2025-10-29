@@ -173,18 +173,34 @@ export default function QRCodeGenerator() {
               )}
 
               {qrCodeUrl && (
-                <Box sx={{ textAlign: 'center' }}>
-                  <canvas
-                    ref={canvasRef}
-                    style={{
-                      maxWidth: '100%',
-                      height: 'auto',
-                      display: qrCodeUrl ? 'block' : 'none',
+                <Box sx={{ textAlign: 'center', width: '100%' }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      maxWidth: '400px',
+                      maxHeight: '400px',
                       margin: '0 auto',
                     }}
-                  />
+                  >
+                    <canvas
+                      ref={canvasRef}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '400px',
+                        width: 'auto',
+                        height: 'auto',
+                        display: 'block',
+                        imageRendering: 'pixelated',
+                      }}
+                    />
+                  </Box>
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                    크기: {qrSize}x{qrSize} 픽셀
+                    원본 크기: {qrSize}x{qrSize} 픽셀
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    (프리뷰는 화면에 맞게 축소됩니다)
                   </Typography>
                 </Box>
               )}
