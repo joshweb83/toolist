@@ -68,12 +68,21 @@ export default function Layout({ children }) {
           >
             <MenuIcon />
           </IconButton>
-          <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit' }}>
-            <Typography variant="h6" component="div" sx={{ cursor: 'pointer' }}>
+          <Link href="/" passHref style={{ textDecoration: 'none', color: 'inherit', flexGrow: 1 }}>
+            <Typography
+              variant="h5"
+              component="div"
+              sx={{
+                cursor: 'pointer',
+                fontFamily: "'Pacifico', cursive",
+                textAlign: 'center',
+                letterSpacing: '0.5px',
+                fontWeight: 400,
+              }}
+            >
               Toolist
             </Typography>
           </Link>
-          <Box sx={{ flexGrow: 1 }} />
           <IconButton sx={{ ml: 1 }} onClick={colorMode.toggleColorMode} color="inherit">
             {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
