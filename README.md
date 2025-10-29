@@ -161,6 +161,28 @@ GEMINI_API_KEY=your_gemini_api_key_here
 3. 환경 변수 설정 확인
 4. `vercel.json` 설정 확인
 
+### GitHub Pages 배포 (선택사항)
+
+Vercel 외에도 GitHub Pages로 사이트를 배포할 수 있습니다.
+
+**📖 상세 설정 가이드:** [GITHUB_PAGES_SETUP.md](./GITHUB_PAGES_SETUP.md)
+
+#### 빠른 시작
+
+1. GitHub 저장소 → **Settings** → **Pages**
+2. **Source**: GitHub Actions 선택
+3. **Actions** 탭에서 워크플로우 파일 생성 ([가이드 참조](./GITHUB_PAGES_SETUP.md))
+4. Push 후 자동 배포
+
+#### GitHub Pages URL
+
+- `https://joshweb83.github.io/toolist/`
+
+#### 주의사항
+
+- 정적 사이트로 빌드 (API Routes 미지원)
+- Vercel은 계속 정상 작동 (Full SSR 지원)
+
 ## 🛠️ 개발자 가이드
 
 ### 새로운 툴 추가하기
