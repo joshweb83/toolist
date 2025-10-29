@@ -18,6 +18,11 @@ const tools = [
     description: '인쇄용 이미지 해상도 점검툴',
     href: '/tools/resolution-checker',
   },
+  {
+    name: 'QR Code Generator',
+    description: 'QR 코드 생성기',
+    href: '/tools/qr-code-generator',
+  },
 ];
 
 export default function HomePage() {
