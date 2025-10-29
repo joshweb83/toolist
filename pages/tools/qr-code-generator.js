@@ -179,18 +179,19 @@ export default function QRCodeGenerator() {
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
+                      width: '100%',
                       maxWidth: '400px',
-                      maxHeight: '400px',
+                      aspectRatio: '1/1',
                       margin: '0 auto',
+                      position: 'relative',
                     }}
                   >
                     <canvas
                       ref={canvasRef}
                       style={{
-                        maxWidth: '100%',
-                        maxHeight: '400px',
-                        width: 'auto',
-                        height: 'auto',
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
                         display: 'block',
                         imageRendering: 'pixelated',
                       }}
