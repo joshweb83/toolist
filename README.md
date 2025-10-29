@@ -2,11 +2,22 @@
 
 다양한 웹 도구를 제공하는 Next.js 애플리케이션
 
+## 🌐 라이브 사이트
+
+**Production:** [https://toolist-mu.vercel.app](https://toolist-mu.vercel.app)
+
+> 각 툴 페이지 직접 링크:
+> - [Script Timer](https://toolist-mu.vercel.app/tools/script-timer)
+> - [VAT Calculator](https://toolist-mu.vercel.app/tools/vat-calculator)
+> - [Print Resolution Checker](https://toolist-mu.vercel.app/tools/resolution-checker)
+> - [QR Code Generator](https://toolist-mu.vercel.app/tools/qr-code-generator)
+
 ## 🛠️ 포함된 도구
 
-- **부가세 계산기** (VAT Calculator)
-- **인쇄물 해상도 체커** (Resolution Checker)
-- **스크립트 타이머** (Script Timer)
+- **스크립트 타이머** (Script Timer) - 대본 리딩 시간 측정
+- **부가세 계산기** (VAT Calculator) - 한국 부가세 계산
+- **인쇄물 해상도 체커** (Print Resolution Checker) - 이미지 해상도 점검
+- **QR 코드 생성기** (QR Code Generator) - QR 코드 생성 및 다운로드
 
 ## 🚀 시작하기
 
@@ -139,7 +150,8 @@ GEMINI_API_KEY=your_gemini_api_key_here
 
 #### 배포 확인
 
-- Production URL: `https://toolist-[project-id].vercel.app`
+- Production URL: [https://toolist-mu.vercel.app](https://toolist-mu.vercel.app)
+- Preview URL: PR 생성 시 Vercel 봇이 댓글로 제공
 - GitHub Actions: Repository → Actions 탭에서 워크플로우 확인
 
 #### 배포 실패 시 확인사항
