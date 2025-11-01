@@ -11,6 +11,7 @@ import NewspaperIcon from '@mui/icons-material/Newspaper';
 import ImageSearchIcon from '@mui/icons-material/ImageSearch';
 import QrCode2Icon from '@mui/icons-material/QrCode2';
 import ArticleIcon from '@mui/icons-material/Article';
+import CreateIcon from '@mui/icons-material/Create';
 import Link from 'next/link';
 import { ColorModeContext } from '../pages/_app.js';
 
@@ -33,6 +34,7 @@ export default function Layout({ children }) {
     { text: 'Print Resolution Checker', href: '/tools/resolution-checker', icon: <ImageSearchIcon /> },
     { text: 'QR Code Generator', href: '/tools/qr-code-generator', icon: <QrCode2Icon /> },
     { text: 'Article Writer', href: '/tools/article-writer', icon: <ArticleIcon /> },
+    { text: 'Blog Writer', href: '/tools/blog-writer', icon: <CreateIcon /> },
   ];
 
   const drawerList = (

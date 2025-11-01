@@ -28,6 +28,11 @@ const tools = [
     description: 'AI 기사 작성기',
     href: '/tools/article-writer',
   },
+  {
+    name: 'Blog Writer',
+    description: 'AI 블로그 작성기',
+    href: '/tools/blog-writer',
+  },
 ];
 
 export default function HomePage() {
