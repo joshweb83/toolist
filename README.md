@@ -11,13 +11,22 @@
 > - [VAT Calculator](https://toolist-mu.vercel.app/tools/vat-calculator)
 > - [Print Resolution Checker](https://toolist-mu.vercel.app/tools/resolution-checker)
 > - [QR Code Generator](https://toolist-mu.vercel.app/tools/qr-code-generator)
+> - [Article Writer](https://toolist-mu.vercel.app/tools/article-writer) (AI)
+> - [Blog Writer](https://toolist-mu.vercel.app/tools/blog-writer) (AI)
 
 ## 🛠️ 포함된 도구
 
+### 기본 유틸리티
 - **스크립트 타이머** (Script Timer) - 대본 리딩 시간 측정
 - **부가세 계산기** (VAT Calculator) - 한국 부가세 계산
 - **인쇄물 해상도 체커** (Print Resolution Checker) - 이미지 해상도 점검
 - **QR 코드 생성기** (QR Code Generator) - QR 코드 생성 및 다운로드
+
+### AI 기반 툴 (Google Gemini API 필요)
+- **AI 기사 작성기** (Article Writer) - 8가지 스타일의 기사 자동 생성
+- **AI 블로그 작성기** (Blog Writer) - 정보 전달형 블로그 자동 생성
+
+> 📘 **AI 툴 사용을 위한 API 키 설정 가이드**: [GEMINI_API_SETUP.md](./GEMINI_API_SETUP.md)
 
 ## 🚀 시작하기
 
@@ -49,29 +58,36 @@ npm start
 
 ## 🔐 환경 변수
 
-### 로컬 개발 환경
+> 🚨 **AI 툴 사용 필수**: Article Writer와 Blog Writer를 사용하려면 Google Gemini API 키가 필요합니다.
+>
+> 📘 **상세 설정 가이드**: [GEMINI_API_SETUP.md](./GEMINI_API_SETUP.md)
 
-1. `.env.local.example` 파일을 복사하여 `.env.local` 생성:
+### 빠른 시작
+
+#### 1. Google Gemini API 키 발급
+- https://aistudio.google.com/app/apikey 에서 무료 발급 (신용카드 불필요)
+- 월 1,500 requests 무료
+
+#### 2. 로컬 개발 환경
 
 ```bash
+# .env.local 파일 생성
 cp .env.local.example .env.local
+
+# API 키 추가
+echo "GEMINI_API_KEY=your_api_key_here" > .env.local
 ```
 
-2. `.env.local` 파일에 실제 API 키 입력:
+#### 3. Vercel 배포 환경
 
 ```
-GEMINI_API_KEY=your_actual_gemini_api_key_here
+Vercel Dashboard → Settings → Environment Variables
+→ GEMINI_API_KEY 추가
+→ Production, Preview, Development 체크
+→ Save
 ```
 
-3. Gemini API 키 발급: [Google AI Studio](https://makersuite.google.com/app/apikey)
-
-### Vercel 배포 환경
-
-1. Vercel Dashboard → 프로젝트 선택
-2. Settings → Environment Variables
-3. `GEMINI_API_KEY` 추가
-4. Production, Preview, Development 환경 선택
-5. Save
+자세한 단계별 가이드는 [GEMINI_API_SETUP.md](./GEMINI_API_SETUP.md)를 참조하세요.
 
 ## 📦 기술 스택
 
