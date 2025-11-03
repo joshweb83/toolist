@@ -74,11 +74,14 @@ export default function ArticleWriter() {
         body: JSON.stringify({ prompt }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('기사 생성에 실패했습니다.');
+        // API에서 반환한 상세 에러 메시지 사용
+        const errorMsg = data.details ? `${data.error}\n${data.details}` : data.error || '기사 생성에 실패했습니다.';
+        throw new Error(errorMsg);
       }
 
-      const data = await response.json();
       setGeneratedArticle(data.text);
     } catch (err) {
       setError(err.message || '기사 생성 중 오류가 발생했습니다.');
