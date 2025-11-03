@@ -78,12 +78,20 @@ export default function ArticleWriter() {
 
       if (!response.ok) {
         // API에서 반환한 상세 에러 메시지 사용
-        const errorMsg = data.details ? `${data.error}\n${data.details}` : data.error || '기사 생성에 실패했습니다.';
+        console.error('API Error Response:', data);
+        const errorMsg = data.details
+          ? `${data.error}\n\n${data.details}`
+          : data.error || `기사 생성에 실패했습니다. (Status: ${response.status})`;
         throw new Error(errorMsg);
+      }
+
+      if (!data.text) {
+        throw new Error('생성된 기사가 비어있습니다. API 응답을 확인해주세요.');
       }
 
       setGeneratedArticle(data.text);
     } catch (err) {
+      console.error('Article Generation Error:', err);
       setError(err.message || '기사 생성 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
