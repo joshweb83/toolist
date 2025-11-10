@@ -10,29 +10,37 @@ import {
   Select,
   MenuItem,
   Alert,
-  AlertTitle,
   IconButton,
   Slider,
+  Dialog,
+  DialogContent,
+  ToggleButton,
+  ToggleButtonGroup,
+  Chip,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
-import SkipNextIcon from '@mui/icons-material/SkipNext';
-import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
-import FastForwardIcon from '@mui/icons-material/FastForward';
-import FastRewindIcon from '@mui/icons-material/FastRewind';
+import CloseIcon from '@mui/icons-material/Close';
 import YouTubeIcon from '@mui/icons-material/YouTube';
+import SwipeIcon from '@mui/icons-material/Swipe';
+import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 
 export default function ShortsFrameViewer() {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState('');
   const [frameRate, setFrameRate] = useState(30);
+  const [navigationUnit, setNavigationUnit] = useState('frame'); // 'frame', '0.1s', '0.5s', '1s'
   const [error, setError] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [showViewer, setShowViewer] = useState(false);
   const playerRef = useRef(null);
-  const iframeRef = useRef(null);
+  const viewerRef = useRef(null);
+  const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
+  const touchEndRef = useRef({ x: 0, y: 0 });
 
   // YouTube Video ID 추출
   const extractVideoId = (url) => {
@@ -52,7 +60,6 @@ export default function ShortsFrameViewer() {
 
   // YouTube IFrame API 로드
   useEffect(() => {
-    // YouTube IFrame API 스크립트 로드
     if (!window.YT) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
@@ -70,8 +77,6 @@ export default function ShortsFrameViewer() {
     const id = extractVideoId(videoUrl);
     if (!id) {
       setError('유효한 YouTube Shorts URL을 입력해주세요.');
-      setVideoId('');
-      setIsVideoReady(false);
       return;
     }
 
@@ -80,6 +85,7 @@ export default function ShortsFrameViewer() {
     setIsVideoReady(false);
     setCurrentTime(0);
     setDuration(0);
+    setShowViewer(true);
 
     // 기존 플레이어가 있으면 제거
     if (playerRef.current) {
@@ -99,6 +105,7 @@ export default function ShortsFrameViewer() {
             disablekb: 1,
             modestbranding: 1,
             rel: 0,
+            fs: 0,
           },
           events: {
             onReady: onPlayerReady,
@@ -108,7 +115,7 @@ export default function ShortsFrameViewer() {
       } else {
         setTimeout(() => loadVideo(), 100);
       }
-    }, 100);
+    }, 300);
   };
 
   const onPlayerReady = (event) => {
@@ -135,7 +142,7 @@ export default function ShortsFrameViewer() {
         const time = playerRef.current.getCurrentTime();
         setCurrentTime(time);
       }
-    }, 100);
+    }, 50);
 
     return () => clearInterval(interval);
   }, [isVideoReady]);
@@ -151,36 +158,123 @@ export default function ShortsFrameViewer() {
     }
   };
 
-  // 프레임 이동 (초 단위)
-  const frameStep = 1 / frameRate;
+  // 넘기는 단위 계산
+  const getNavigationStep = () => {
+    switch (navigationUnit) {
+      case 'frame':
+        return 1 / frameRate;
+      case '0.1s':
+        return 0.1;
+      case '0.5s':
+        return 0.5;
+      case '1s':
+        return 1;
+      default:
+        return 1 / frameRate;
+    }
+  };
 
-  const nextFrame = () => {
-    if (!playerRef.current) return;
-    const newTime = Math.min(currentTime + frameStep, duration);
+  // 다음/이전으로 이동
+  const navigate = (direction) => {
+    if (!playerRef.current || !isVideoReady) return;
+
+    const step = getNavigationStep();
+    const newTime = direction === 'next'
+      ? Math.min(currentTime + step, duration)
+      : Math.max(currentTime - step, 0);
+
     playerRef.current.seekTo(newTime, true);
+    playerRef.current.pauseVideo();
     setCurrentTime(newTime);
   };
 
-  const previousFrame = () => {
-    if (!playerRef.current) return;
-    const newTime = Math.max(currentTime - frameStep, 0);
-    playerRef.current.seekTo(newTime, true);
-    setCurrentTime(newTime);
+  // 터치 이벤트 핸들러
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+    };
   };
 
-  const skipForward = () => {
-    if (!playerRef.current) return;
-    const newTime = Math.min(currentTime + 1, duration);
-    playerRef.current.seekTo(newTime, true);
-    setCurrentTime(newTime);
+  const handleTouchMove = (e) => {
+    const touch = e.touches[0];
+    touchEndRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
   };
 
-  const skipBackward = () => {
-    if (!playerRef.current) return;
-    const newTime = Math.max(currentTime - 1, 0);
-    playerRef.current.seekTo(newTime, true);
-    setCurrentTime(newTime);
+  const handleTouchEnd = () => {
+    const deltaX = touchEndRef.current.x - touchStartRef.current.x;
+    const deltaY = Math.abs(touchEndRef.current.y - touchStartRef.current.y);
+    const deltaTime = Date.now() - touchStartRef.current.time;
+
+    // 가로 스와이프가 세로보다 크고, 최소 거리를 이동했을 때
+    if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 50 && deltaTime < 300) {
+      if (deltaX > 0) {
+        // 오른쪽 스와이프 -> 이전
+        navigate('prev');
+      } else {
+        // 왼쪽 스와이프 -> 다음
+        navigate('next');
+      }
+    }
   };
+
+  // 마우스 이벤트 핸들러 (데스크톱)
+  const handleMouseDown = (e) => {
+    touchStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleMouseMove = (e) => {
+    if (e.buttons === 1) {
+      touchEndRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+      };
+    }
+  };
+
+  const handleMouseUp = () => {
+    const deltaX = touchEndRef.current.x - touchStartRef.current.x;
+    const deltaY = Math.abs(touchEndRef.current.y - touchStartRef.current.y);
+    const deltaTime = Date.now() - touchStartRef.current.time;
+
+    if (Math.abs(deltaX) > deltaY && Math.abs(deltaX) > 50 && deltaTime < 300) {
+      if (deltaX > 0) {
+        navigate('prev');
+      } else {
+        navigate('next');
+      }
+    }
+  };
+
+  // 키보드 이벤트 핸들러
+  useEffect(() => {
+    if (!showViewer || !isVideoReady) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        navigate('prev');
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        navigate('next');
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        togglePlayPause();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showViewer, isVideoReady, currentTime, navigationUnit]);
 
   const handleSliderChange = (event, newValue) => {
     if (!playerRef.current) return;
@@ -195,32 +289,46 @@ export default function ShortsFrameViewer() {
     return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   };
 
-  return (
-    <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 2 }}>
-      {/* 타이틀 섹션 */}
-      <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-          Shorts Frame Viewer
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          YouTube Shorts 프레임 뷰어
-        </Typography>
-      </Box>
+  const closeViewer = () => {
+    setShowViewer(false);
+    if (playerRef.current) {
+      playerRef.current.pauseVideo();
+    }
+  };
 
-      {/* 메인 컨텐츠 */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          gap: 4,
-          alignItems: 'stretch',
-        }}
-      >
-        {/* 왼쪽: 입력 폼 */}
-        <Box sx={{ flex: '1 1 40%' }}>
-          <Paper variant="outlined" sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+  const getUnitLabel = () => {
+    switch (navigationUnit) {
+      case 'frame':
+        return `1프레임 (${(1000 / frameRate).toFixed(1)}ms)`;
+      case '0.1s':
+        return '0.1초';
+      case '0.5s':
+        return '0.5초';
+      case '1s':
+        return '1초';
+      default:
+        return '';
+    }
+  };
+
+  return (
+    <>
+      <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 }, borderRadius: 2 }}>
+        {/* 타이틀 섹션 */}
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+            Shorts Frame Viewer
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            YouTube Shorts 이북 스타일 프레임 뷰어
+          </Typography>
+        </Box>
+
+        {/* 입력 폼 */}
+        <Box sx={{ maxWidth: 600, mx: 'auto' }}>
+          <Paper variant="outlined" sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              설정
+              비디오 설정
             </Typography>
 
             <TextField
@@ -248,6 +356,26 @@ export default function ShortsFrameViewer() {
               </Select>
             </FormControl>
 
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" gutterBottom sx={{ mb: 1 }}>
+                넘기는 단위
+              </Typography>
+              <ToggleButtonGroup
+                value={navigationUnit}
+                exclusive
+                onChange={(e, newValue) => {
+                  if (newValue !== null) setNavigationUnit(newValue);
+                }}
+                fullWidth
+                size="small"
+              >
+                <ToggleButton value="frame">1프레임</ToggleButton>
+                <ToggleButton value="0.1s">0.1초</ToggleButton>
+                <ToggleButton value="0.5s">0.5초</ToggleButton>
+                <ToggleButton value="1s">1초</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
             <Button
               variant="contained"
               color="primary"
@@ -255,9 +383,9 @@ export default function ShortsFrameViewer() {
               fullWidth
               startIcon={<YouTubeIcon />}
               onClick={loadVideo}
-              sx={{ mt: 2 }}
+              sx={{ mt: 3 }}
             >
-              비디오 로드
+              뷰어 열기
             </Button>
 
             {error && (
@@ -265,174 +393,215 @@ export default function ShortsFrameViewer() {
                 {error}
               </Alert>
             )}
-
-            <Box sx={{ mt: 'auto', pt: 3 }}>
-              <Alert severity="info">
-                <AlertTitle>사용 방법</AlertTitle>
-                <Typography variant="body2" component="div">
-                  1. YouTube Shorts URL 입력<br />
-                  2. 비디오 로드 버튼 클릭<br />
-                  3. 프레임 단위 이동 버튼 사용<br />
-                  • ◀◀ / ▶▶ : 1초 이동<br />
-                  • ◀ / ▶ : 1프레임 이동
-                </Typography>
-              </Alert>
-            </Box>
           </Paper>
-        </Box>
 
-        {/* 오른쪽: 비디오 플레이어 */}
-        <Box sx={{ flex: '1 1 60%' }}>
-          <Paper variant="outlined" sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Typography variant="h6" gutterBottom>
-              플레이어
+          {/* 사용 방법 */}
+          <Alert severity="info" sx={{ mt: 3 }} icon={<SwipeIcon />}>
+            <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+              사용 방법
             </Typography>
+            <Typography variant="body2" component="div">
+              • 이북처럼 좌우로 스와이프하여 프레임 이동<br />
+              • 키보드 ← → 방향키로도 이동 가능<br />
+              • 스페이스바로 재생/일시정지<br />
+              • 하단 슬라이더로 빠른 이동
+            </Typography>
+          </Alert>
+        </Box>
+      </Paper>
 
-            <Box
-              sx={{
-                flexGrow: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#000',
-                borderRadius: 2,
-                overflow: 'hidden',
-                position: 'relative',
-                minHeight: { xs: 400, md: 500 },
-                mt: 2,
-              }}
-            >
-              {!videoId ? (
-                <Box sx={{ textAlign: 'center', color: 'white', p: 3 }}>
-                  <YouTubeIcon sx={{ fontSize: 80, opacity: 0.5, mb: 2 }} />
-                  <Typography variant="body1">
-                    YouTube Shorts URL을 입력하고 비디오를 로드하세요
-                  </Typography>
-                </Box>
-              ) : (
+      {/* 전체화면 뷰어 팝업 */}
+      <Dialog
+        open={showViewer}
+        onClose={closeViewer}
+        fullScreen
+        PaperProps={{
+          sx: {
+            bgcolor: '#000',
+            m: 0,
+          },
+        }}
+      >
+        <DialogContent
+          sx={{
+            p: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100vh',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* 상단 컨트롤 바 */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 10,
+              bgcolor: 'rgba(0, 0, 0, 0.7)',
+              backdropFilter: 'blur(10px)',
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton
+                onClick={closeViewer}
+                sx={{ color: 'white' }}
+              >
+                <CloseIcon />
+              </IconButton>
+              <Typography variant="body1" sx={{ color: 'white', fontWeight: 'bold' }}>
+                Shorts Frame Viewer
+              </Typography>
+            </Box>
+            <Chip
+              label={getUnitLabel()}
+              size="small"
+              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+            />
+          </Box>
+
+          {/* 비디오 영역 */}
+          <Box
+            ref={viewerRef}
+            sx={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              cursor: 'grab',
+              '&:active': {
+                cursor: 'grabbing',
+              },
+            }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+          >
+            {!isVideoReady ? (
+              <Box sx={{ textAlign: 'center', color: 'white', p: 3 }}>
+                <YouTubeIcon sx={{ fontSize: 80, opacity: 0.5, mb: 2 }} />
+                <Typography variant="body1">
+                  비디오 로딩 중...
+                </Typography>
+              </Box>
+            ) : (
+              <>
                 <Box
                   id="youtube-player"
-                  ref={iframeRef}
                   sx={{
                     width: '100%',
                     height: '100%',
+                    maxWidth: '100%',
                     aspectRatio: '9/16',
-                    maxHeight: '100%',
+                    pointerEvents: 'none',
                   }}
                 />
-              )}
-            </Box>
 
-            {/* 컨트롤 패널 */}
-            {isVideoReady && (
-              <Box sx={{ mt: 3 }}>
-                {/* 타임라인 슬라이더 */}
-                <Box sx={{ px: 1 }}>
-                  <Slider
-                    value={currentTime}
-                    min={0}
-                    max={duration}
-                    step={frameStep}
-                    onChange={handleSliderChange}
-                    valueLabelDisplay="auto"
-                    valueLabelFormat={(value) => formatTime(value)}
-                  />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatTime(currentTime)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatTime(duration)}
-                    </Typography>
-                  </Box>
-                </Box>
-
-                {/* 재생 컨트롤 버튼 */}
+                {/* 좌우 네비게이션 힌트 */}
                 <Box
                   sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: 1,
-                    mt: 2,
+                    position: 'absolute',
+                    left: 20,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    opacity: 0.3,
+                    pointerEvents: 'none',
                   }}
                 >
-                  <IconButton
-                    onClick={skipBackward}
-                    color="primary"
-                    size="large"
-                    title="1초 뒤로"
-                  >
-                    <FastRewindIcon fontSize="large" />
-                  </IconButton>
-
-                  <IconButton
-                    onClick={previousFrame}
-                    color="primary"
-                    size="large"
-                    title="이전 프레임"
-                  >
-                    <SkipPreviousIcon fontSize="large" />
-                  </IconButton>
-
-                  <IconButton
-                    onClick={togglePlayPause}
-                    color="primary"
-                    size="large"
-                    sx={{
-                      bgcolor: 'primary.main',
-                      color: 'white',
-                      '&:hover': { bgcolor: 'primary.dark' },
-                    }}
-                  >
-                    {isPlaying ? (
-                      <PauseIcon fontSize="large" />
-                    ) : (
-                      <PlayArrowIcon fontSize="large" />
-                    )}
-                  </IconButton>
-
-                  <IconButton
-                    onClick={nextFrame}
-                    color="primary"
-                    size="large"
-                    title="다음 프레임"
-                  >
-                    <SkipNextIcon fontSize="large" />
-                  </IconButton>
-
-                  <IconButton
-                    onClick={skipForward}
-                    color="primary"
-                    size="large"
-                    title="1초 앞으로"
-                  >
-                    <FastForwardIcon fontSize="large" />
-                  </IconButton>
+                  <KeyboardArrowLeftIcon sx={{ fontSize: 60, color: 'white' }} />
                 </Box>
-
-                {/* 프레임 정보 */}
-                <Box sx={{ textAlign: 'center', mt: 2 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    프레임: {Math.floor(currentTime * frameRate)} / {Math.floor(duration * frameRate)}
-                    ({frameRate} FPS)
-                  </Typography>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    right: 20,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    opacity: 0.3,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <KeyboardArrowRightIcon sx={{ fontSize: 60, color: 'white' }} />
                 </Box>
-              </Box>
+              </>
             )}
-          </Paper>
-        </Box>
-      </Box>
+          </Box>
 
-      {/* 추가 정보 */}
-      <Box sx={{ mt: 4 }}>
-        <Alert severity="success">
-          <AlertTitle>프레임 뷰어란?</AlertTitle>
-          YouTube Shorts 영상을 프레임 단위로 세밀하게 탐색할 수 있는 도구입니다.
-          영상 분석, 장면 캡처, 세밀한 편집 작업에 유용합니다.
-        </Alert>
-      </Box>
-    </Paper>
+          {/* 하단 컨트롤 바 */}
+          {isVideoReady && (
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                zIndex: 10,
+                bgcolor: 'rgba(0, 0, 0, 0.7)',
+                backdropFilter: 'blur(10px)',
+                p: 2,
+                pb: 3,
+              }}
+            >
+              {/* 프레임 정보 */}
+              <Box sx={{ textAlign: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  프레임: {Math.floor(currentTime * frameRate)} / {Math.floor(duration * frameRate)}
+                  ({frameRate} FPS)
+                </Typography>
+              </Box>
+
+              {/* 타임라인 슬라이더 */}
+              <Box sx={{ px: 2, mb: 2 }}>
+                <Slider
+                  value={currentTime}
+                  min={0}
+                  max={duration}
+                  step={getNavigationStep()}
+                  onChange={handleSliderChange}
+                  sx={{
+                    color: 'white',
+                    '& .MuiSlider-thumb': {
+                      width: 16,
+                      height: 16,
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* 재생 버튼 */}
+              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                <IconButton
+                  onClick={togglePlayPause}
+                  sx={{
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    '&:hover': {
+                      bgcolor: 'rgba(255,255,255,0.3)',
+                    },
+                  }}
+                  size="large"
+                >
+                  {isPlaying ? <PauseIcon fontSize="large" /> : <PlayArrowIcon fontSize="large" />}
+                </IconButton>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
