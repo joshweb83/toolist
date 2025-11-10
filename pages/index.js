@@ -33,6 +33,11 @@ const tools = [
     description: 'AI 블로그 작성기',
     href: '/tools/blog-writer',
   },
+  {
+    name: 'Shorts Frame Viewer',
+    description: 'YouTube Shorts 프레임 뷰어',
+    href: '/tools/shorts-frame-viewer',
+  },
 ];
 
 export default function HomePage() {
