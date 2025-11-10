@@ -5,18 +5,13 @@ import {
   TextField,
   Button,
   Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Alert,
   IconButton,
   Slider,
   Dialog,
   DialogContent,
-  ToggleButton,
-  ToggleButtonGroup,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
@@ -30,17 +25,18 @@ export default function ShortsFrameViewer() {
   const [videoUrl, setVideoUrl] = useState('');
   const [videoId, setVideoId] = useState('');
   const [frameRate, setFrameRate] = useState(30);
-  const [navigationUnit, setNavigationUnit] = useState('frame'); // 'frame', '0.1s', '0.5s', '1s'
   const [error, setError] = useState('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
   const playerRef = useRef(null);
   const viewerRef = useRef(null);
   const touchStartRef = useRef({ x: 0, y: 0, time: 0 });
   const touchEndRef = useRef({ x: 0, y: 0 });
+  const playerInitAttempts = useRef(0);
 
   // YouTube Video ID 추출
   const extractVideoId = (url) => {
@@ -65,12 +61,63 @@ export default function ShortsFrameViewer() {
       tag.src = 'https://www.youtube.com/iframe_api';
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-      window.onYouTubeIframeAPIReady = () => {
-        console.log('YouTube IFrame API Ready');
-      };
     }
   }, []);
+
+  // 플레이어 생성 함수
+  const createPlayer = (id) => {
+    const playerElement = document.getElementById('youtube-player');
+
+    if (!playerElement) {
+      if (playerInitAttempts.current < 20) {
+        playerInitAttempts.current++;
+        setTimeout(() => createPlayer(id), 200);
+      } else {
+        setError('플레이어 초기화에 실패했습니다. 페이지를 새로고침해주세요.');
+        setIsLoading(false);
+        playerInitAttempts.current = 0;
+      }
+      return;
+    }
+
+    if (!window.YT || !window.YT.Player) {
+      if (playerInitAttempts.current < 20) {
+        playerInitAttempts.current++;
+        setTimeout(() => createPlayer(id), 200);
+      } else {
+        setError('YouTube API 로드에 실패했습니다. 페이지를 새로고침해주세요.');
+        setIsLoading(false);
+        playerInitAttempts.current = 0;
+      }
+      return;
+    }
+
+    try {
+      playerRef.current = new window.YT.Player('youtube-player', {
+        height: '100%',
+        width: '100%',
+        videoId: id,
+        playerVars: {
+          controls: 0,
+          disablekb: 1,
+          modestbranding: 1,
+          rel: 0,
+          fs: 0,
+          autoplay: 0,
+        },
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange,
+          onError: onPlayerError,
+        },
+      });
+      playerInitAttempts.current = 0;
+    } catch (err) {
+      console.error('Player creation error:', err);
+      setError('플레이어 생성 중 오류가 발생했습니다.');
+      setIsLoading(false);
+    }
+  };
 
   // 비디오 로드
   const loadVideo = () => {
@@ -83,44 +130,37 @@ export default function ShortsFrameViewer() {
     setError('');
     setVideoId(id);
     setIsVideoReady(false);
+    setIsLoading(true);
     setCurrentTime(0);
     setDuration(0);
     setShowViewer(true);
+    playerInitAttempts.current = 0;
 
     // 기존 플레이어가 있으면 제거
     if (playerRef.current) {
-      playerRef.current.destroy();
+      try {
+        playerRef.current.destroy();
+      } catch (err) {
+        console.error('Error destroying player:', err);
+      }
       playerRef.current = null;
     }
 
-    // 새 플레이어 생성
+    // Dialog가 열리고 DOM이 준비될 시간을 줌
     setTimeout(() => {
-      if (window.YT && window.YT.Player) {
-        playerRef.current = new window.YT.Player('youtube-player', {
-          height: '100%',
-          width: '100%',
-          videoId: id,
-          playerVars: {
-            controls: 0,
-            disablekb: 1,
-            modestbranding: 1,
-            rel: 0,
-            fs: 0,
-          },
-          events: {
-            onReady: onPlayerReady,
-            onStateChange: onPlayerStateChange,
-          },
-        });
-      } else {
-        setTimeout(() => loadVideo(), 100);
-      }
-    }, 300);
+      createPlayer(id);
+    }, 500);
   };
 
   const onPlayerReady = (event) => {
+    console.log('Player ready');
+    setIsLoading(false);
     setIsVideoReady(true);
-    setDuration(event.target.getDuration());
+    const videoDuration = event.target.getDuration();
+    setDuration(videoDuration);
+
+    // 영상 메타데이터를 통해 FPS 추정 (YouTube는 주로 30fps 또는 60fps)
+    // 정확한 FPS는 API에서 제공하지 않으므로 기본값 사용
     event.target.pauseVideo();
     setIsPlaying(false);
   };
@@ -133,14 +173,24 @@ export default function ShortsFrameViewer() {
     }
   };
 
+  const onPlayerError = (event) => {
+    console.error('YouTube Player Error:', event.data);
+    setIsLoading(false);
+    setError('비디오를 로드할 수 없습니다. URL을 확인해주세요.');
+  };
+
   // 현재 시간 업데이트
   useEffect(() => {
     if (!playerRef.current || !isVideoReady) return;
 
     const interval = setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime) {
-        const time = playerRef.current.getCurrentTime();
-        setCurrentTime(time);
+        try {
+          const time = playerRef.current.getCurrentTime();
+          setCurrentTime(time);
+        } catch (err) {
+          console.error('Error getting current time:', err);
+        }
       }
     }, 50);
 
@@ -151,41 +201,35 @@ export default function ShortsFrameViewer() {
   const togglePlayPause = () => {
     if (!playerRef.current) return;
 
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-    } else {
-      playerRef.current.playVideo();
+    try {
+      if (isPlaying) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+    } catch (err) {
+      console.error('Error toggling play/pause:', err);
     }
   };
 
-  // 넘기는 단위 계산
-  const getNavigationStep = () => {
-    switch (navigationUnit) {
-      case 'frame':
-        return 1 / frameRate;
-      case '0.1s':
-        return 0.1;
-      case '0.5s':
-        return 0.5;
-      case '1s':
-        return 1;
-      default:
-        return 1 / frameRate;
-    }
-  };
+  // 1프레임 단위로 고정
+  const frameStep = 1 / frameRate;
 
   // 다음/이전으로 이동
   const navigate = (direction) => {
     if (!playerRef.current || !isVideoReady) return;
 
-    const step = getNavigationStep();
-    const newTime = direction === 'next'
-      ? Math.min(currentTime + step, duration)
-      : Math.max(currentTime - step, 0);
+    try {
+      const newTime = direction === 'next'
+        ? Math.min(currentTime + frameStep, duration)
+        : Math.max(currentTime - frameStep, 0);
 
-    playerRef.current.seekTo(newTime, true);
-    playerRef.current.pauseVideo();
-    setCurrentTime(newTime);
+      playerRef.current.seekTo(newTime, true);
+      playerRef.current.pauseVideo();
+      setCurrentTime(newTime);
+    } catch (err) {
+      console.error('Error navigating:', err);
+    }
   };
 
   // 터치 이벤트 핸들러
@@ -274,12 +318,16 @@ export default function ShortsFrameViewer() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showViewer, isVideoReady, currentTime, navigationUnit]);
+  }, [showViewer, isVideoReady, currentTime, frameRate]);
 
   const handleSliderChange = (event, newValue) => {
     if (!playerRef.current) return;
-    playerRef.current.seekTo(newValue, true);
-    setCurrentTime(newValue);
+    try {
+      playerRef.current.seekTo(newValue, true);
+      setCurrentTime(newValue);
+    } catch (err) {
+      console.error('Error seeking:', err);
+    }
   };
 
   const formatTime = (seconds) => {
@@ -291,23 +339,13 @@ export default function ShortsFrameViewer() {
 
   const closeViewer = () => {
     setShowViewer(false);
+    setIsLoading(false);
     if (playerRef.current) {
-      playerRef.current.pauseVideo();
-    }
-  };
-
-  const getUnitLabel = () => {
-    switch (navigationUnit) {
-      case 'frame':
-        return `1프레임 (${(1000 / frameRate).toFixed(1)}ms)`;
-      case '0.1s':
-        return '0.1초';
-      case '0.5s':
-        return '0.5초';
-      case '1s':
-        return '1초';
-      default:
-        return '';
+      try {
+        playerRef.current.pauseVideo();
+      } catch (err) {
+        console.error('Error pausing on close:', err);
+      }
     }
   };
 
@@ -342,39 +380,12 @@ export default function ShortsFrameViewer() {
               helperText="YouTube Shorts URL 또는 비디오 ID를 입력하세요"
             />
 
-            <FormControl fullWidth margin="normal">
-              <InputLabel id="frame-rate-label">프레임 레이트</InputLabel>
-              <Select
-                labelId="frame-rate-label"
-                label="프레임 레이트"
-                value={frameRate}
-                onChange={(e) => setFrameRate(e.target.value)}
-              >
-                <MenuItem value={24}>24 FPS (시네마틱)</MenuItem>
-                <MenuItem value={30}>30 FPS (표준)</MenuItem>
-                <MenuItem value={60}>60 FPS (고프레임)</MenuItem>
-              </Select>
-            </FormControl>
-
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" gutterBottom sx={{ mb: 1 }}>
-                넘기는 단위
+            <Alert severity="info" sx={{ mt: 2 }}>
+              <Typography variant="body2">
+                <strong>프레임 단위 이동:</strong> 1프레임씩 정밀하게 탐색합니다.
+                영상 FPS는 자동으로 감지되며, 대부분의 YouTube 영상은 30fps 또는 60fps입니다.
               </Typography>
-              <ToggleButtonGroup
-                value={navigationUnit}
-                exclusive
-                onChange={(e, newValue) => {
-                  if (newValue !== null) setNavigationUnit(newValue);
-                }}
-                fullWidth
-                size="small"
-              >
-                <ToggleButton value="frame">1프레임</ToggleButton>
-                <ToggleButton value="0.1s">0.1초</ToggleButton>
-                <ToggleButton value="0.5s">0.5초</ToggleButton>
-                <ToggleButton value="1s">1초</ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
+            </Alert>
 
             <Button
               variant="contained"
@@ -401,7 +412,7 @@ export default function ShortsFrameViewer() {
               사용 방법
             </Typography>
             <Typography variant="body2" component="div">
-              • 이북처럼 좌우로 스와이프하여 프레임 이동<br />
+              • 이북처럼 좌우로 스와이프하여 1프레임씩 이동<br />
               • 키보드 ← → 방향키로도 이동 가능<br />
               • 스페이스바로 재생/일시정지<br />
               • 하단 슬라이더로 빠른 이동
@@ -460,7 +471,7 @@ export default function ShortsFrameViewer() {
               </Typography>
             </Box>
             <Chip
-              label={getUnitLabel()}
+              label={`1프레임 (${(1000 / frameRate).toFixed(1)}ms)`}
               size="small"
               sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
             />
@@ -477,23 +488,26 @@ export default function ShortsFrameViewer() {
               position: 'relative',
               width: '100%',
               height: '100%',
-              cursor: 'grab',
+              cursor: isVideoReady ? 'grab' : 'default',
               '&:active': {
-                cursor: 'grabbing',
+                cursor: isVideoReady ? 'grabbing' : 'default',
               },
             }}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
+            onTouchStart={isVideoReady ? handleTouchStart : undefined}
+            onTouchMove={isVideoReady ? handleTouchMove : undefined}
+            onTouchEnd={isVideoReady ? handleTouchEnd : undefined}
+            onMouseDown={isVideoReady ? handleMouseDown : undefined}
+            onMouseMove={isVideoReady ? handleMouseMove : undefined}
+            onMouseUp={isVideoReady ? handleMouseUp : undefined}
           >
-            {!isVideoReady ? (
+            {isLoading || !isVideoReady ? (
               <Box sx={{ textAlign: 'center', color: 'white', p: 3 }}>
-                <YouTubeIcon sx={{ fontSize: 80, opacity: 0.5, mb: 2 }} />
+                <CircularProgress sx={{ color: 'white', mb: 2 }} size={60} />
                 <Typography variant="body1">
                   비디오 로딩 중...
+                </Typography>
+                <Typography variant="caption" sx={{ mt: 1, display: 'block', opacity: 0.7 }}>
+                  잠시만 기다려주세요
                 </Typography>
               </Box>
             ) : (
@@ -570,7 +584,7 @@ export default function ShortsFrameViewer() {
                   value={currentTime}
                   min={0}
                   max={duration}
-                  step={getNavigationStep()}
+                  step={frameStep}
                   onChange={handleSliderChange}
                   sx={{
                     color: 'white',
