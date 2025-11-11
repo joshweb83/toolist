@@ -13,13 +13,42 @@ import {
   Divider,
   List,
   ListItem,
-  ListItemText,
+  TextField,
+  IconButton,
+  Autocomplete,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  InputAdornment,
 } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
+import SearchIcon from '@mui/icons-material/Search';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { EMA, RSI, MACD } from 'technicalindicators';
+import axios from 'axios';
 
-// 샘플 주식 데이터 생성 (실제로는 API에서 가져와야 함)
+// Alpha Vantage API 설정
+const ALPHA_VANTAGE_BASE_URL = 'https://www.alphavantage.co/query';
+
+// 인기 주식 목록
+const POPULAR_STOCKS = [
+  { symbol: 'AAPL', name: 'Apple Inc.' },
+  { symbol: 'MSFT', name: 'Microsoft Corporation' },
+  { symbol: 'GOOGL', name: 'Alphabet Inc.' },
+  { symbol: 'AMZN', name: 'Amazon.com Inc.' },
+  { symbol: 'TSLA', name: 'Tesla Inc.' },
+  { symbol: 'NVDA', name: 'NVIDIA Corporation' },
+  { symbol: 'META', name: 'Meta Platforms Inc.' },
+  { symbol: 'JPM', name: 'JPMorgan Chase & Co.' },
+  { symbol: 'V', name: 'Visa Inc.' },
+  { symbol: 'WMT', name: 'Walmart Inc.' },
+];
+
+// 샘플 데이터 생성
 const generateSampleData = () => {
   const data = [];
   let basePrice = 100;
@@ -48,12 +77,27 @@ const generateSampleData = () => {
 };
 
 export default function BNFTradingStrategy() {
+  const [apiKey, setApiKey] = useState('');
+  const [showApiDialog, setShowApiDialog] = useState(false);
+  const [stockSymbol, setStockSymbol] = useState('');
+  const [selectedStock, setSelectedStock] = useState(null);
+  const [searchResults, setSearchResults] = useState([]);
   const [stockData, setStockData] = useState([]);
   const [signals, setSignals] = useState([]);
   const [indicators, setIndicators] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [mode, setMode] = useState('demo'); // 'demo' or 'live'
   const chartContainerRef = useRef(null);
   const chartRef = useRef(null);
+
+  // 로컬스토리지에서 API 키 불러오기
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem('alphaVantageApiKey');
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
+  }, []);
 
   // 컴포넌트 마운트 시 샘플 데이터 로드
   useEffect(() => {
@@ -68,12 +112,10 @@ export default function BNFTradingStrategy() {
       try {
         const LightweightCharts = await import('lightweight-charts');
 
-        // 기존 차트 제거
         if (chartRef.current) {
           chartRef.current.remove();
         }
 
-        // 새 차트 생성
         const chart = LightweightCharts.createChart(chartContainerRef.current, {
           width: chartContainerRef.current.clientWidth,
           height: 500,
@@ -95,7 +137,6 @@ export default function BNFTradingStrategy() {
 
         chartRef.current = chart;
 
-        // 캔들스틱 시리즈 추가
         const candlestickSeries = chart.addCandlestickSeries({
           upColor: '#26a69a',
           downColor: '#ef5350',
@@ -112,7 +153,6 @@ export default function BNFTradingStrategy() {
           close: d.close,
         })));
 
-        // EMA(25) 라인 추가
         if (indicators && indicators.ema) {
           const lineSeries = chart.addLineSeries({
             color: '#2196F3',
@@ -126,7 +166,6 @@ export default function BNFTradingStrategy() {
           })).filter(d => d.value !== null));
         }
 
-        // 매수 신호 마커 추가
         if (signals.length > 0) {
           const markers = signals.map(signal => ({
             time: signal.time,
@@ -139,7 +178,6 @@ export default function BNFTradingStrategy() {
           candlestickSeries.setMarkers(markers);
         }
 
-        // 반응형 처리
         const handleResize = () => {
           if (chartContainerRef.current) {
             chart.applyOptions({
@@ -164,16 +202,117 @@ export default function BNFTradingStrategy() {
     loadChart();
   }, [stockData, indicators, signals]);
 
+  // API 키 저장
+  const saveApiKey = () => {
+    if (apiKey.trim()) {
+      localStorage.setItem('alphaVantageApiKey', apiKey.trim());
+      setShowApiDialog(false);
+      setError('');
+    } else {
+      setError('API 키를 입력해주세요.');
+    }
+  };
+
+  // 주식 검색
+  const searchStock = async (searchTerm) => {
+    if (!searchTerm || searchTerm.length < 1) {
+      setSearchResults([]);
+      return;
+    }
+
+    if (!apiKey) {
+      setError('먼저 API 키를 설정해주세요.');
+      setShowApiDialog(true);
+      return;
+    }
+
+    try {
+      const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
+        params: {
+          function: 'SYMBOL_SEARCH',
+          keywords: searchTerm,
+          apikey: apiKey,
+        },
+      });
+
+      if (response.data.bestMatches) {
+        const results = response.data.bestMatches.map(match => ({
+          symbol: match['1. symbol'],
+          name: match['2. name'],
+          type: match['3. type'],
+          region: match['4. region'],
+        }));
+        setSearchResults(results);
+      }
+    } catch (err) {
+      console.error('검색 오류:', err);
+      setError('주식 검색 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 실시간 주식 데이터 로드
+  const loadRealStockData = async (symbol) => {
+    if (!apiKey) {
+      setError('먼저 API 키를 설정해주세요.');
+      setShowApiDialog(true);
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.get(ALPHA_VANTAGE_BASE_URL, {
+        params: {
+          function: 'TIME_SERIES_DAILY',
+          symbol: symbol,
+          outputsize: 'full',
+          apikey: apiKey,
+        },
+      });
+
+      if (response.data['Error Message']) {
+        throw new Error('유효하지 않은 주식 심볼입니다.');
+      }
+
+      if (response.data['Note']) {
+        throw new Error('API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      const timeSeries = response.data['Time Series (Daily)'];
+      if (!timeSeries) {
+        throw new Error('데이터를 불러올 수 없습니다.');
+      }
+
+      const data = Object.entries(timeSeries)
+        .slice(0, 100)
+        .reverse()
+        .map(([date, values]) => ({
+          time: date,
+          open: parseFloat(values['1. open']),
+          high: parseFloat(values['2. high']),
+          low: parseFloat(values['3. low']),
+          close: parseFloat(values['4. close']),
+          volume: parseInt(values['5. volume']),
+        }));
+
+      setStockData(data);
+      calculateIndicators(data);
+      setMode('live');
+      setLoading(false);
+    } catch (err) {
+      console.error('데이터 로드 오류:', err);
+      setError(err.message || '주식 데이터를 불러오는 중 오류가 발생했습니다.');
+      setLoading(false);
+    }
+  };
+
   const loadSampleData = () => {
     setLoading(true);
-
-    // 샘플 데이터 생성
     const data = generateSampleData();
     setStockData(data);
-
-    // 지표 계산
     calculateIndicators(data);
-
+    setMode('demo');
     setLoading(false);
   };
 
@@ -182,16 +321,13 @@ export default function BNFTradingStrategy() {
     const highs = data.map(d => d.high);
     const lows = data.map(d => d.low);
 
-    // EMA(25) 계산
     const emaValues = EMA.calculate({
       period: 25,
       values: closes,
     });
 
-    // 앞부분 null로 채우기
     const ema = new Array(closes.length - emaValues.length).fill(null).concat(emaValues);
 
-    // RSI 계산
     const rsiValues = RSI.calculate({
       period: 14,
       values: closes,
@@ -199,7 +335,6 @@ export default function BNFTradingStrategy() {
 
     const rsi = new Array(closes.length - rsiValues.length).fill(null).concat(rsiValues);
 
-    // MACD 계산
     const macdInput = {
       values: closes,
       fastPeriod: 12,
@@ -213,8 +348,6 @@ export default function BNFTradingStrategy() {
     const macd = new Array(closes.length - macdValues.length).fill(null).concat(macdValues);
 
     setIndicators({ ema, rsi, macd });
-
-    // 매수 신호 감지
     detectBuySignals(data, ema, rsi, macd);
   };
 
@@ -222,7 +355,6 @@ export default function BNFTradingStrategy() {
     const buySignals = [];
 
     for (let i = 25; i < data.length; i++) {
-      // 조건 1: 가격 급락 확인 (최근 5일 내 10% 이상 하락)
       let priceDropped = false;
       if (i >= 5) {
         const fiveDaysAgo = data[i - 5].close;
@@ -231,17 +363,14 @@ export default function BNFTradingStrategy() {
         priceDropped = drop >= 10;
       }
 
-      // 조건 2: EMA와 캔들 거리 20% 이상
       const emaValue = ema[i];
       const currentPrice = data[i].close;
       const distance = emaValue ? ((emaValue - currentPrice) / emaValue) * 100 : 0;
       const distanceCheck = distance >= 20;
 
-      // 조건 3: RSI 과매도 영역 (< 30)
       const rsiValue = rsi[i];
       const rsiOversold = rsiValue && rsiValue < 30;
 
-      // 조건 4: MACD 히스토그램 영선 위에서 녹색 전환
       const macdCurrent = macd[i];
       const macdPrev = macd[i - 1];
       let macdSignal = false;
@@ -249,14 +378,10 @@ export default function BNFTradingStrategy() {
       if (macdCurrent && macdPrev) {
         const currentHist = macdCurrent.MACD - macdCurrent.signal;
         const prevHist = macdPrev.MACD - macdPrev.signal;
-
-        // 히스토그램이 음수에서 양수로 전환 (녹색 전환)
         macdSignal = prevHist < 0 && currentHist > 0;
       }
 
-      // 4가지 조건 모두 충족 시 매수 신호
       if (priceDropped && distanceCheck && rsiOversold && macdSignal) {
-        // 손절선: 직전 저점
         let stopLoss = data[i].low;
         for (let j = i - 1; j >= Math.max(0, i - 10); j--) {
           if (data[j].low < stopLoss) {
@@ -299,6 +424,102 @@ export default function BNFTradingStrategy() {
         </Typography>
       </Box>
 
+      {/* 주식 검색 및 설정 */}
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <Box sx={{ flex: 1, minWidth: 250 }}>
+            <Autocomplete
+              freeSolo
+              options={mode === 'demo' ? POPULAR_STOCKS : searchResults}
+              getOptionLabel={(option) => typeof option === 'string' ? option : `${option.symbol} - ${option.name}`}
+              onInputChange={(event, value) => {
+                setStockSymbol(value);
+                if (mode === 'live' && value.length >= 1) {
+                  searchStock(value);
+                }
+              }}
+              onChange={(event, value) => {
+                if (value && typeof value === 'object') {
+                  setSelectedStock(value);
+                }
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="주식 심볼 검색"
+                  placeholder={mode === 'demo' ? "예: AAPL, TSLA" : "주식 심볼 입력"}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              )}
+            />
+          </Box>
+
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            onClick={() => {
+              if (mode === 'live' && selectedStock) {
+                loadRealStockData(selectedStock.symbol);
+              } else if (mode === 'live' && stockSymbol) {
+                loadRealStockData(stockSymbol.toUpperCase());
+              } else {
+                loadSampleData();
+              }
+            }}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <SearchIcon />}
+          >
+            분석하기
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="large"
+            onClick={() => setShowApiDialog(true)}
+            startIcon={<SettingsIcon />}
+          >
+            API 설정
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="large"
+            onClick={loadSampleData}
+            startIcon={<RefreshIcon />}
+          >
+            데모 모드
+          </Button>
+        </Box>
+
+        <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          <Chip
+            label={mode === 'demo' ? '데모 모드' : '실시간 모드'}
+            color={mode === 'demo' ? 'default' : 'success'}
+            size="small"
+          />
+          {apiKey && mode === 'live' && (
+            <Chip label="API 연결됨" color="success" size="small" />
+          )}
+          {selectedStock && mode === 'live' && (
+            <Chip label={`${selectedStock.symbol} - ${selectedStock.name}`} size="small" variant="outlined" />
+          )}
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+      </Paper>
+
       {/* 전략 설명 */}
       <Alert severity="info" sx={{ mb: 3 }}>
         <AlertTitle sx={{ fontWeight: 'bold' }}>BNF 핵심 전략</AlertTitle>
@@ -322,14 +543,11 @@ export default function BNFTradingStrategy() {
             <ShowChartIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
             차트 분석
           </Typography>
-          <Box>
-            <Chip label="샘플 데이터" size="small" color="primary" sx={{ mr: 1 }} />
-            <Chip
-              label={`매수 신호: ${signals.length}개`}
-              size="small"
-              color={signals.length > 0 ? 'success' : 'default'}
-            />
-          </Box>
+          <Chip
+            label={`매수 신호: ${signals.length}개`}
+            size="small"
+            color={signals.length > 0 ? 'success' : 'default'}
+          />
         </Box>
 
         <Box
@@ -476,6 +694,34 @@ export default function BNFTradingStrategy() {
           과거 수익률이 미래 수익을 보장하지 않으며, 모든 투자에는 손실 위험이 있습니다.
         </Typography>
       </Alert>
+
+      {/* API 키 설정 다이얼로그 */}
+      <Dialog open={showApiDialog} onClose={() => setShowApiDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Alpha Vantage API 키 설정</DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              무료 API 키를 발급받으려면 <a href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>Alpha Vantage</a>에 가입하세요.
+            </Typography>
+          </Alert>
+
+          <TextField
+            label="API Key"
+            fullWidth
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="여기에 API 키를 입력하세요"
+            helperText="API 키는 로컬 브라우저에만 저장됩니다"
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowApiDialog(false)}>취소</Button>
+          <Button onClick={saveApiKey} variant="contained">
+            저장
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 }
