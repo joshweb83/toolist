@@ -38,6 +38,11 @@ const tools = [
     description: 'YouTube Shorts 프레임 뷰어',
     href: '/tools/shorts-frame-viewer',
   },
+  {
+    name: 'BNF Trading Strategy',
+    description: 'BNF 전설의 트레이더 매매 전략 분석',
+    href: '/tools/bnf-trading-strategy',
+  },
 ];
 
 export default function HomePage() {
